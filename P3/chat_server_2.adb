@@ -1,0 +1,337 @@
+--Marco Tejedor Gonzalez
+with Lower_Layer_UDP;
+with Ada.Strings.Unbounded;
+with ADA.Command_Line;
+with ADA.Text_IO;
+with ADA.Exceptions;
+with Chat_Messages;
+with Types;
+with Handlers;
+with Users;
+with ADA.Calendar;
+	
+procedure Chat_Server_2 is
+
+	package TIO renames ADA.Text_IO;
+	package LLU renames Lower_Layer_UDP;
+	package ASU renames ADA.Strings.Unbounded;
+	package ACL renames ADA.Command_Line;
+	package EXC renames ADA.Exceptions;
+	package CM renames Chat_Messages;
+	package U renames Users;
+	package AC renames ADA.Calendar;
+	use type LLU.End_Point_Type;
+	use type CM.Message_Type;
+	use type AC.Time;
+
+	Num_Clientes: Natural := 0;
+	Max_Clientes: Natural ;
+--Devuelve el cliente a partir de la EP
+		
+	function Nick_Repetido (Nick: ASU.Unbounded_String; Clients: Users.Clients) return Boolean is
+		Client: Types.Client_Type;
+		Repetido: Boolean := False;
+	begin
+		for K in 1 .. Num_Clientes loop
+			Client := Users.Get_User(Clients, K, Num_Clientes);
+			if ASU.To_String(Client.Nick) = ASU.To_String(Nick) then
+				Repetido := True;
+			end if;
+		end loop;
+		return Repetido;
+	end Nick_Repetido;
+
+	function Get_Client (EP: LLU.End_Point_Type; Clients: Users.Clients) return Types.Client_Type is
+		Client: Types.Client_Type;
+		Cliente: Types.Client_Type;
+	begin
+		for K in 1 .. Num_Clientes loop
+			Client := Users.Get_User(Clients, K, Num_Clientes);
+			if EP = Client.EP_Handler then
+				Cliente := Client;
+			end if;
+		end loop;
+		return Cliente;
+	end Get_Client;
+
+--Devuelve el numero del cliente a partir de su EP
+	function Get_Client_Num (EP: LLU.End_Point_Type; Clients:Users.Clients) return Natural is
+		Client: Types.Client_Type;
+		Num: Natural;
+	begin
+		for K in 1 .. Num_Clientes loop
+			Client := Users.Get_User(Clients, K, Num_Clientes);
+			if EP = Client.EP_Handler then
+				Num := K;
+			end if;
+		end loop;
+		return Num;
+	end Get_Client_Num;
+
+	procedure Send_Others (Clients: Users.Clients; Cliente: Types.Client_Type; Buffer: in out LLU.Buffer_Type; Mensaje: CM.Message) is
+		Client: Types.Client_Type;
+	begin
+		LLU.Reset(Buffer);
+		CM.Message_Type'Output(Buffer'Access, Mensaje.Tipo);
+		ASU.Unbounded_String'Output(Buffer'Access, Mensaje.Nick);
+		ASU.Unbounded_String'Output(Buffer'Access, Mensaje.Comment);
+		for K in 1 .. Num_Clientes loop
+			Client := Users.Get_User(Clients, K, Num_Clientes);
+			if Client.EP_Handler /= Cliente.EP_Handler then
+				LLU.Send (Client.EP_Handler, Buffer'Access);
+			end if;
+		end loop;
+		LLU.Reset(Buffer);
+	end Send_Others;
+
+	procedure Send_Client (Cliente: Types.Client_Type; Buffer: in out LLU.Buffer_Type; Mensaje: CM.Message) is
+	begin
+		LLU.Reset(Buffer);
+		CM.Message_Type'Output(Buffer'Access, Mensaje.Tipo);
+		ASU.Unbounded_String'Output(Buffer'Access, Mensaje.Nick);
+		ASU.Unbounded_String'Output(Buffer'Access, Mensaje.Comment);
+		LLU.Send (Cliente.EP_Handler, Buffer'Access);
+		LLU.Reset(Buffer);
+	end Send_Client;
+
+	procedure Send_Clients (Clients: Users.Clients; 
+	Buffer: in out LLU.Buffer_Type; Mensaje: CM.Message) is
+		Client: Types.Client_Type;
+	begin
+		LLU.Reset(Buffer);
+		CM.Message_Type'Output(Buffer'Access, Mensaje.Tipo);
+		ASU.Unbounded_String'Output(Buffer'Access, Mensaje.Nick);
+		ASU.Unbounded_String'Output(Buffer'Access, Mensaje.Comment);
+		for K in 1 .. Num_Clientes loop
+			Client := Users.Get_User(Clients, K, Num_Clientes);
+			LLU.Send (Client.EP_Handler, Buffer'Access);
+		end loop;
+		LLU.Reset(Buffer);
+	end Send_Clients;
+
+-- Sustituye al cliente que mas lleva sin hablar
+	procedure Sustituir_Cliente (Clients: in out Users.Clients; Cliente: Types.Client_Type; Buffer: in out LLU.Buffer_Type) is
+		--Tiempo actual
+		A_Time: AC.Time;
+		--Tiempo más antiguo
+		S_Time: AC.Time := AC.Clock;
+		Client: Types.Client_Type;
+		Num: Natural;
+		Nick: ASU.Unbounded_String;
+		Mensaje: CM.Message;
+	begin
+		for K in 1 .. Num_Clientes loop
+			Client := Users.Get_User(Clients, K, Num_Clientes);
+			A_Time := Client.Time;
+			if A_Time < S_Time then
+				S_Time := A_Time;
+				Num := K;
+				Nick := Client.Nick;
+			end if;
+		end loop;
+		Mensaje.Tipo := CM.Server;
+		Mensaje.Nick := ASU.To_Unbounded_String ("servidor");
+		Mensaje.Comment := ASU.To_Unbounded_String (ASU.To_String(Nick) & " ha sido expulsado del chat");
+		TIO.Put_Line(ASU.To_String(Mensaje.Comment));
+		Client := Users.Get_User(Clients, Num, Num_Clientes);
+		Send_Others(Clients, Client, Buffer, Mensaje);
+		Mensaje.Comment := ASU.To_Unbounded_String("has sido expulsado del chat");
+		Send_Client (Client, Buffer, Mensaje);
+		Users.Replace_User(Clients, Cliente, Num, Num_Clientes);
+	end Sustituir_Cliente;
+
+	procedure Acoger_Cliente (Clients: Users.Clients; Buffer: in out LLU.Buffer_Type; Cliente: Types.Client_Type; Acogido: Boolean) is
+		Mensaje: CM.Message;
+	begin
+		--Acoge al cliente
+		LLU.Reset(Buffer);
+		Mensaje.Tipo:= CM.Welcome;
+		CM.Message_Type'Output(Buffer'Access, Mensaje.Tipo);
+		Boolean'Output(Buffer'Access, Acogido);
+		LLU.Send (Cliente.EP_Receive, Buffer'Access);
+
+		--Informa de ello
+		LLU.Reset(Buffer);
+		Mensaje.Tipo := CM.Server;
+		Mensaje.Nick := ASU.To_Unbounded_String("servidor");
+		if Acogido then
+			Mensaje.Comment := ASU.To_Unbounded_String(ASU.To_String(Cliente.Nick) & " ha entrado en el chat");
+			Send_Others (Clients, Cliente, Buffer, Mensaje);
+		else
+			Mensaje.Comment := ASU.To_Unbounded_String(ASU.To_String(Cliente.Nick) & " ha sido rechazado porque el nick ya está en uso");
+			Send_Others (Clients, Cliente, Buffer, Mensaje);
+		end if;
+	end Acoger_Cliente;
+
+---------------------------------------------------------
+--Aquí empiezan los 3 procedimientos mas importantes
+---------------------------------------------------------
+
+--Rechaza o acepta, y agrega o sustituye
+
+	procedure Add_Client (Clients: in out Users.Clients; 
+	Buffer: in out LLU.Buffer_Type) is
+		Cliente: Types.Client_Type;
+		Repetido: Boolean := False;
+
+	begin
+		Cliente.Time := AC.Clock;
+		Cliente.EP_Receive := LLU.End_Point_Type'Input(Buffer'Access);
+		Cliente.EP_Handler := LLU.End_Point_Type'Input(Buffer'Access);
+		Cliente.Nick := ASU.Unbounded_String'Input(Buffer'Access);
+		LLU.Reset(Buffer);
+
+		TIO.Put("recibido mensaje inicial de ");
+		TIO.Put(ASU.To_String(Cliente.Nick));
+		
+		Repetido := Nick_Repetido(Cliente.Nick, Clients);
+
+		if Repetido then
+			TIO.Put_Line(": RECHAZADO");
+			Acoger_Cliente (Clients, Buffer, Cliente, False);
+--TIO.Put_Line("Tengo" & Integer'Image(Num_Clientes) & " Clientes");
+		elsif Num_Clientes < Max_Clientes then
+			TIO.Put_Line(": ACEPTADO");
+			Acoger_Cliente (Clients, Buffer, Cliente, True);
+			Users.Add_User (Clients, Cliente, Num_Clientes);
+			Num_Clientes := Num_Clientes + 1;
+--TIO.Put_Line("Tengo" & Integer'Image(Num_Clientes) & " Clientes");
+		else 
+			TIO.Put_Line(": ACEPTADO");
+			Acoger_Cliente (Clients, Buffer, Cliente, True);
+			Sustituir_Cliente(Clients, Cliente, Buffer);
+--TIO.Put_Line("Tengo" & Integer'Image(Num_Clientes) & " Clientes");
+		end if;
+	end Add_Client;
+
+	procedure Reenviar_Writer (Clientes: in out Users.Clients; 
+	Buffer: in out LLU.Buffer_Type) is
+		Mensaje: CM.Message;
+		Client: Types.Client_Type;
+		Num: Natural;
+	begin
+		--Recibir
+		Mensaje.Client_EP_Handler := LLU.End_Point_Type'Input(Buffer'Access);
+		Mensaje.Comment := ASU.Unbounded_String'Input(Buffer'Access);
+		Client := Get_Client (Mensaje.Client_EP_Handler, Clientes);
+		Num := Get_Client_Num (Mensaje.Client_EP_Handler, Clientes);
+		Mensaje.Nick := Client.Nick;
+		Client.Time := AC.Clock;
+		if ASU.To_String(Mensaje.Nick) /= "desconocido" then
+			TIO.Put("recibido mensaje de ");
+			TIO.Put(ASU.To_String(Mensaje.Nick) & ": ");
+			TIO.Put_Line(ASU.To_String(Mensaje.Comment));
+			--Reemplaza al cliente por otro igual con la hora actual
+			Users.Replace_User(Clientes, Client, Num, Num_Clientes);
+			--Enviar
+			LLU.Reset(Buffer);
+			Mensaje.Tipo:= CM.Server;
+			Send_Others (Clientes, Client, Buffer, Mensaje);
+			LLU.Reset(Buffer);
+--		else
+--TIO.Put_Line("Recibido mensaje de un escritor desconocido o ya expulsado");
+		end if;
+	end Reenviar_Writer;
+
+	procedure Eliminar_Cliente (Clients: in out Users.Clients; 
+	Buffer: in out LLU.Buffer_Type) is
+		Mensaje: CM.Message;
+		Client: Types.Client_Type;
+		Nick: ASU.Unbounded_String;
+		Num: Natural;
+	begin
+		--Recibir
+		Mensaje.Client_EP_Handler := LLU.End_Point_Type'Input(Buffer'Access);
+		Client := Get_Client(Mensaje.Client_EP_Handler, Clients);
+		Num := Get_Client_Num (Mensaje.Client_EP_Handler, Clients);
+		Nick := Client.Nick;
+		--Borra
+		if ASU.To_String(Nick) /= "desconocido" then
+			Users.Delete_User(Clients, Num, Num_Clientes);
+			Num_Clientes := Num_Clientes - 1;
+--TIO.Put_Line("Tengo" & Integer'Image(Num_Clientes) & " Clientes");
+			--Informa
+			Mensaje.Tipo := CM.Server;
+			Mensaje.Nick := ASU.To_Unbounded_String("servidor");
+			Mensaje.Comment := ASU.To_Unbounded_String(ASU.To_String(Nick) & " ha abandonado el chat");
+			TIO.Put_Line (ASU.To_String(Mensaje.Comment));
+			Send_Clients (Clients, Buffer, Mensaje);
+--		else
+--TIO.Put_Line("Recibido mensaje de Logout de un cliente desconocido o expulsado");
+		end if;
+	end Eliminar_Cliente;
+
+	Server: Types.Server_Type;
+	Buffer: aliased LLU.Buffer_Type(1024);
+	Mensaje: CM.Message;
+	Expired: Boolean:= False;
+	Clients: Users.Clients;
+
+	Usage_Error: exception;
+	Fatal_Error: exception;
+	Clients_Error: exception;
+
+begin
+
+	if ACL.Argument_Count = 2 then
+	--Iniciar: 	-interpretar argumentos
+	--				-atarse a un EP
+
+		Server.Host_Name := ASU.To_Unbounded_String (LLU.Get_Host_Name);
+		Server.Port := Integer'Value(ACL.Argument(1));
+		Server.IP := ASU.To_Unbounded_String(LLU.To_IP(ASU.To_String(Server.Host_Name)));
+		Server.EP := LLU.Build (ASU.To_String(Server.IP),Server.Port);
+  		LLU.Bind (Server.EP);
+		Max_Clientes := Integer'Value(ACL.Argument(2));
+
+		if Max_Clientes > 50 or Max_Clientes < 2 then
+			raise Clients_Error;
+		end if;
+
+		TIO.Put_Line("Server activo en el puerto" & Integer'Image(Server.Port) & " con un maximo de clientes de" & Integer'Image(Max_Clientes));
+	
+		loop
+			if Num_Clientes = 0 then
+				TIO.Put_Line("Chat vacío. A la espera de nuevos clientes");
+			end if;
+			LLU.Reset(Buffer);
+			LLU.Receive (Server.EP, Buffer'Access, 1000.0, Expired);
+			if Expired then
+				Ada.Text_IO.Put_Line ("La gente no habla, sigo escuchando");
+			else
+				Mensaje.Tipo := CM.Message_Type'Input(Buffer'Access);
+				if Mensaje.Tipo = CM.Init then
+					Add_Client(Clients, Buffer);
+				elsif Mensaje.Tipo = CM.Writer then
+					Reenviar_Writer(Clients, Buffer);
+				elsif Mensaje.Tipo = CM.Logout then
+					Eliminar_Cliente(Clients, Buffer);
+				else
+					raise Fatal_Error;
+				end if;
+			end if;
+			LLU.Reset(Buffer);
+		end loop;
+	else
+		raise Usage_Error;
+	end if;
+	LLU.Finalize;
+	exception
+	when Usage_Error =>
+		TIO.Put_Line("Error de uso!!");
+		TIO.Put_Line("Uso: ./chat_server_2 <Port> <Maximo de clientes>");
+		LLU.Finalize;
+	when Fatal_Error =>
+		TIO.Put_Line("Error Fatal!!");
+		TIO.Put_Line("Imposible identificar el mensaje");
+		LLU.Finalize;
+	when Clients_Error =>
+		TIO.Put_Line("Error de uso!!");
+		TIO.Put_Line("El máximo de clientes debe estar entre 2 y 50");
+		LLU.Finalize;
+	when Users.Limit_Error =>
+		TIO.Put_Line ("Error Fatal!!");
+		TIO.Put_Line ("Violado limite de usuarios");
+		LLU.Finalize;
+
+end Chat_Server_2;

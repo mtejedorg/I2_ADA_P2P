@@ -1,0 +1,93 @@
+with Ada.Text_IO;
+with Ada.Unchecked_Deallocation;
+
+package body Ordered_Maps_G is
+
+	package TIO renames Ada.Text_IO;
+
+	procedure Bynary_Search (M: Map; First, Last: Natural; K: Key_Type; Pos: in out Natural; Success: out Boolean) is
+	begin
+		Success := False;
+		Pos := (First + Last)/2;
+		if First <= Last then
+			if M.Arr(Pos).Key = K then
+				Success := True;
+			elsif M.Arr(Pos).Key > K then
+				Bynary_Search(M, First, Pos - 1, K, Pos, Success);
+			--o sólo else
+			elsif M.Arr(Pos).Key < K then
+				Bynary_Search(M, Pos + 1, Last, K, Pos, Success);
+			end if;
+		end if;
+		Pos := Pos;
+	end Bynary_Search;
+
+   procedure Get (M       : Map;
+                  Key     : in  Key_Type;
+                  Value   : out Value_Type;
+                  Success : out Boolean) is
+		Pos: Natural;
+   begin
+      Bynary_Search(M, 1, M.Length, Key, Pos, Success);
+		if Success then
+			Value := M.Arr(Pos).Value;
+		end if;
+   end Get;
+
+   procedure Put (M     : in out Map;
+                  Key   : Key_Type;
+                  Value : Value_Type) is
+		Pos: Natural;
+		Success: Boolean;
+   begin
+		Bynary_Search(M, 1, M.Length, Key, Pos, Success);
+		if Success then
+			M.Arr(Pos).Value := Value;
+		elsif Pos = 0 then
+			M.Length := M.Length + 1;
+			M.Arr(1).Key := Key;
+			M.Arr(1).Value := Value;
+		else
+			for K in reverse Pos..M.Length loop
+				if K < M.Arr'Length then
+					M.Arr(K+1) := M.Arr(K);
+				end if;
+			end loop;
+			M.Length := M.Length + 1;
+			M.Arr(Pos).Key := Key;
+			M.Arr(Pos).Value := Value;
+		end if; 
+   end Put;
+
+   procedure Delete (M       : in out Map;
+                     Key     : in  Key_Type;
+                     Success : out Boolean) is
+		Pos: Natural;
+   begin
+		Bynary_Search(M, 1, M.Length, Key, Pos, Success);
+		if Success then
+			M.Length := M.Length - 1;
+			for K in Pos..M.Length-1 loop
+				M.Arr(K) := M.Arr(K+1);
+			end loop;
+		end if; 
+   end Delete;
+
+   function Map_Length (M : Map) return Natural is
+   begin
+      return M.Length;
+   end Map_Length;
+
+   procedure Print_Map (M : Map) is
+   begin
+      Ada.Text_Io.Put_Line ("Symbol Table");
+      Ada.Text_Io.Put_Line ("============");
+		for K in 1..M.Length loop
+	      Ada.Text_IO.Put_Line ("(" &
+       				Key_To_String(M.Arr(K).Key) & 
+						", " & Value_To_String(M.Arr(K).Value) 
+						& ")");
+		end loop;
+   end Print_Map;
+
+end Ordered_Maps_G;

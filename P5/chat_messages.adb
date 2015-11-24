@@ -1,0 +1,238 @@
+--Marco Tejedor González
+with Debug;
+with Pantalla;
+with Timed_Handlers;
+with Ada.Text_IO;
+package body Chat_Messages is
+	package D renames Debug;
+	package TH renames Timed_Handlers;
+	package TIO renames Ada.Text_IO;
+
+	procedure Buff_To_Msg_R (P_Buffer_H: access LLU.Buffer_Type; M: out Message_R) is
+	begin
+		M.Tipo := Message_Type'Input (P_Buffer_H);
+		if M.Tipo = SN then
+			M.EP_H_Neigh := LLU.End_Point_Type'Input(P_Buffer_H);
+			M.Seq_N := CH.U.Seq_N_T'Input (P_Buffer_H);
+		elsif M.Tipo /= ACK then
+			M.EP_H_Creat := LLU.End_Point_Type'Input(P_Buffer_H);
+			M.Seq_N := CH.U.Seq_N_T'Input (P_Buffer_H);
+			M.EP_H_Rsnd := LLU.End_Point_Type'Input (P_Buffer_H);
+			if M.Tipo = Init then
+				M.EP_R_Creat := LLU.End_Point_Type'Input (P_Buffer_H);
+			end if;
+			M.Nick := ASU.Unbounded_String'Input (P_Buffer_H);
+			if M.Tipo = Writer then
+				M.Text := ASU.Unbounded_String'Input (P_Buffer_H);
+			elsif M.Tipo = Logout then
+				M.Confirm_Sent := Boolean'Input (P_Buffer_H);
+			end if;
+		else
+			M.EP_H_ACKer := LLU.End_Point_Type'Input(P_Buffer_H);
+			M.EP_H_Creat := LLU.End_Point_Type'Input(P_Buffer_H);
+			M.Seq_N := CH.U.Seq_N_T'Input (P_Buffer_H);
+		end if;
+	end Buff_To_Msg_R;
+
+	function Msg_R_To_Buff (M: Message_R) return CH.U.Buffer_A_T is
+	Buff_A: CH.U.Buffer_A_T;
+	begin
+	Buff_A := new LLU.Buffer_Type (1024);
+		Message_Type'Output (Buff_A, M.Tipo);
+		LLU.End_Point_Type'Output(Buff_A, M.EP_H_Creat);
+		CH.U.Seq_N_T'Output (Buff_A, M.Seq_N);
+		LLU.End_Point_Type'Output (Buff_A, M.EP_H_Rsnd);
+		if M.Tipo = Init then
+			LLU.End_Point_Type'Output (Buff_A, M.EP_R_Creat);
+		end if;
+		ASU.Unbounded_String'Output (Buff_A, M.Nick);
+		if M.Tipo = Writer then
+			ASU.Unbounded_String'Output (Buff_A, M.Text);
+		elsif M.Tipo = Logout then
+			Boolean'Output (Buff_A, M.Confirm_Sent);
+		end if;
+		return Buff_A;
+	end Msg_R_To_Buff;
+
+   procedure Retry (Time: in AC.Time) is
+		V: CH.U.Value_T;
+		MID: CH.U.Mess_ID_T;
+		Success: Boolean;
+		Dests: CH.U.Destinations_T;
+		Quedan_EP: Boolean := False;
+		New_Time: AC.Time;
+		use type AC.Time;
+   begin
+      CH.Sender_Buffering.Get (CH.Myself.S_Buff, Time, V, Success);
+      CH.Sender_Buffering.Delete (CH.Myself.S_Buff, Time, Success);
+		if Success then
+			MID := (V.EP_H_Creat, V.Seq_N);
+			CH.Sender_Dests.Get(CH.Myself.S_Dests, MID, Dests, Success);
+			if Success then
+				for K in 1..CH.U.Max_Neigh_Length loop
+					if Dests(K).EP /= null and Dests(K).Retries < CH.U.Max_Retries then
+						Quedan_EP := True;
+						LLU.Send (Dests(K).EP, V.P_Buffer);
+						Dests(K).Retries := Dests(K).Retries+1;
+							D.Put_Line("Reenvío a " & CH.U.Writable_EP(Dests(K).EP) & " el mensaje " & CH.U.MIT_To_String(MID) & ", intento número " & Natural'Image(Dests(K).Retries), Pantalla.Azul_Claro);
+					end if;
+				end loop;
+				if Quedan_EP then
+					CH.Sender_Dests.Put(CH.Myself.S_Dests, MID, Dests);
+					New_Time := Time+CH.Plazo_Retransmision;
+					CH.Sender_Buffering.Put(CH.Myself.S_Buff, New_Time, V);
+					TH.Set_Timed_Handler(New_Time, Retry'access);
+				else
+					CH.Sender_Dests.Delete(CH.Myself.S_Dests, Mid, Success);
+					Free(V.P_Buffer);
+				end if;
+			else
+				Free(V.P_Buffer);
+			end if;
+		end if;
+   end Retry;
+
+--Esta función no está declarada en el ads
+	function Main_To_Msg_R (User: CH.User_Type; Tipo: Message_Type; Text: ASU.Unbounded_String) return Message_R is
+	M: Message_R;
+	begin
+		M.Tipo := Tipo;
+		M.EP_H_Creat := User.EP_H; 
+		M.Seq_N := User.Seq_N;
+		M.EP_H_Rsnd := User.EP_H;
+		M.EP_R_Creat := User.EP_R;
+		M.Nick := User.Nick;
+		M.Text := Text;
+		M.Confirm_Sent := User.Conf_Sent;
+		return M;
+	end Main_To_Msg_R;
+
+	procedure Send_SN
+			(Destination: LLU.End_Point_Type; 
+			 EP_H: LLU.End_Point_Type;
+			 Seq_N: CH.U.Seq_N_T) is
+		Buffer: aliased LLU.Buffer_Type(1024);
+	begin
+			Message_Type'Output(Buffer'Access, SN);
+			LLU.End_Point_Type'Output(Buffer'Access, EP_H);
+			CH.U.Seq_N_T'Output(Buffer'Access, Seq_N);
+			LLU.Send (Destination, Buffer'Access);
+				D.Put_Line("Envío mensaje de Supernodo al EP " & CH.U.Writable_EP(Destination) & " con la EP del vecino " & CH.U.Writable_EP(EP_H), Pantalla.Azul_Claro);
+	end Send_SN;
+
+	procedure Send_ACK 
+			(Destination: LLU.End_Point_Type; 
+			 EP_H_ACKer: LLU.End_Point_Type;
+			 EP_H_Creat: LLU.End_Point_Type;
+			 Seq_N: CH.U.Seq_N_T) is
+		Buffer: aliased LLU.Buffer_Type(1024);
+		MID: CH.U.Mess_Id_T;
+	begin 
+			Message_Type'Output(Buffer'Access, ACK);
+			LLU.End_Point_Type'Output(Buffer'Access, EP_H_ACKer);
+			LLU.End_Point_Type'Output(Buffer'Access, EP_H_Creat);
+		CH.U.Seq_N_T'Output (Buffer'Access, Seq_N);
+			LLU.Send (Destination, Buffer'Access);
+			MID := (Ep_H_Creat, Seq_N);
+				D.Put_Line("Envío mensaje de ACK al EP " & CH.U.Writable_EP(Destination) & " del mensaje caracterizado por " & CH.U.MIT_To_String(MID), Pantalla.Azul_Claro);
+	end Send_ACK;
+
+	procedure Send_Reject 
+			(Destination: LLU.End_Point_Type; 
+			 EP_H: LLU.End_Point_Type;
+			 Nick: ASU.Unbounded_String) is
+		Buffer: aliased LLU.Buffer_Type(1024);
+	begin 
+				D.Put("Send REJECT", Pantalla.Amarillo);
+				D.Put_Line("   " & CH.U.Writable_EP(Destination) & "==>" & ASU.To_String(Nick));
+			Message_Type'Output(Buffer'Access, Reject);
+			LLU.End_Point_Type'Output(Buffer'Access, EP_H);
+			ASU.Unbounded_String'Output(Buffer'Access, Nick);
+			LLU.Send (Destination, Buffer'Access);
+	end Send_Reject;
+
+	procedure Send_Flood_MR
+			(P_Buffer: in out CH.U.Buffer_A_T;
+			 Who: in out CH.User_Type; 
+			 M: in out Message_R) is 
+		Neigh_Array: CH.Neighbors.Keys_Array_Type := CH.Neighbors.Get_Keys(Who.Neigh);
+		Who_Not: LLU.End_Point_Type := M.EP_H_Rsnd;
+	begin
+				D.Put ("FLOOD " & Message_Type'Image(M.Tipo) & "   " , Pantalla.Amarillo);
+				D.Put (CH.U.Writable_EP(M.EP_H_Creat) & 
+				CH.U.Seq_N_T'Image(M.Seq_N) & "     " & CH.U.Writable_EP(Who.EP_H) & " ==> " & ASU.To_String(M.Nick));
+				if M.Tipo = Writer then
+				D.Put (": " & ASU.To_String(M.Text));
+				end if;
+				D.New_Line(2);
+		M.EP_H_Rsnd := Who.EP_H;
+		Message_Type'Output(P_Buffer, M.Tipo);
+		LLU.End_Point_Type'Output(P_Buffer, M.EP_H_Creat);
+		CH.U.Seq_N_T'Output(P_Buffer, M.Seq_N);
+		LLU.End_Point_Type'Output(P_Buffer, M.EP_H_Rsnd);
+		if M.Tipo = Init then
+			LLU.End_Point_Type'Output(P_Buffer, M.EP_R_Creat);
+			ASU.Unbounded_String'Output(P_Buffer, M.Nick);
+		elsif M.Tipo = Confirm or
+				M.Tipo = Writer or
+				M.Tipo = Logout then
+			ASU.Unbounded_String'Output(P_Buffer, M.Nick);
+			if M.Tipo = Writer then
+				ASU.Unbounded_String'Output(P_Buffer, M.Text);
+			elsif M.Tipo = Logout then
+				Boolean'Output(P_Buffer, M.Confirm_Sent);
+			end if;
+		else
+			raise Message_Type_Error;
+		end if;
+		for K in 1..CH.Neighbors.Map_Length(Who.Neigh) loop
+			if Neigh_Array(K) /= Who_Not then
+				LLU.Send (Neigh_Array(K), P_Buffer);
+			end if;
+		end loop;
+	end Send_Flood_MR;
+
+	procedure Main_Send_Flood (Myself: in out CH.User_Type; Tipo: Message_Type; Comentario: ASU.Unbounded_String := ASU.To_Unbounded_String("sin texto")) is
+		use type CH.U.Seq_N_T;
+		use type AC.Time;
+		V: CH.U.Value_T;
+		Time: AC.Time;
+		Neigh_Array: CH.Neighbors.Keys_Array_Type := CH.Neighbors.Get_Keys(Myself.Neigh);
+		Destinations: CH.U.Destinations_T;
+		Mess_ID: CH.U.Mess_Id_T;
+		Success: Boolean;
+		M: Message_R;
+	begin
+		if CH.Neighbors.Map_Length(Myself.Neigh) > 0 then
+		Myself.Seq_N := Myself.Seq_N + 1;
+				D.Put_Line("Sumo 1 a mi Seq_N", Pantalla.Azul);
+				D.Put_Line("Añadimos a latest_messages " & CH.U.Writable_EP(Myself.EP_H) & CH.U.Seq_N_T'Image(Myself.Seq_N));
+		CH.Latest_Msgs.Put(Myself.L_Msgs, Myself.EP_H, Myself.Seq_N, Success);
+		M := Main_To_Msg_R (Myself, Tipo, Comentario);
+			P_Buffer_Main := new LLU.Buffer_Type(1024);
+			for K in 1..CH.Neighbors.Map_Length(Myself.Neigh) loop
+				Destinations(K).EP := Neigh_Array(K);
+				Destinations(K).Retries := 0;
+			end loop;
+			Mess_ID := (Myself.EP_H, Myself.Seq_N);
+			CH.Sender_Dests.Put(Myself.S_Dests, Mess_ID, Destinations);
+				D.Put_Line("Añadimos a Sender_Dests el mensaje caracterizado por: ");
+				D.Put_Line(CH.U.MIT_To_String (Mess_ID), Pantalla.Azul);
+				D.Put_Line("Se espera la confirmación de los vecinos: ");
+				D.Put_Line(CH.U.DT_To_String(Destinations), Pantalla.Azul);
+			V := (Myself.EP_H, Myself.Seq_N, P_Buffer_Main);
+			Time := AC.Clock + CH.Plazo_Retransmision;
+				D.Put_Line("Añadimos a Sender_Buffering el mensaje caracterizado por: ");
+				D.Put_Line(CH.U.VT_To_String(V), Pantalla.Azul);
+				D.Put_Line("Hora de retransmisión:");
+				D.Put_Line(CH.U.Time_To_String(Time), Pantalla.Azul);
+			CH.Sender_Buffering.Put(Myself.S_Buff, Time, V);
+			Send_Flood_MR(P_Buffer_Main, Myself, M);
+			TH.Set_Timed_Handler (Time, Retry'access);
+		else 
+			D.Put_Line("Al no haber vecinos, no envío ni almaceno el mensaje", Pantalla.Azul);
+		end if;
+	end Main_Send_Flood;
+
+
+end Chat_Messages;

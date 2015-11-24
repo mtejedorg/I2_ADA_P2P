@@ -1,0 +1,130 @@
+V "GNAT Lib v4.6"
+P SS ZX
+R nnnnnnnnnnnnnnnnnnnnnnnnnvnnnnnnnnvnnvnnnvnnvnnnnnnnnnnnnnvnnnnnnnnnnnnnnnnnnnnn
+
+U ctrl_c_handler%b	ctrl_c_handler.adb	1d65fc86 NE OO PK
+W ada%s			ada.ads			ada.ali
+W ada.strings%s		a-string.ads		a-string.ali
+W ada.strings.unbounded%s  a-strunb.adb		a-strunb.ali
+W ada.tags%s		a-tags.adb		a-tags.ali
+W ada.text_io%s		a-textio.adb		a-textio.ali
+W chat_handler%s	chat_handler.adb	chat_handler.ali
+W lower_layer_udp%s	lower_layer_udp.adb	lower_layer_udp.ali
+W pantalla%s		pantalla.adb		pantalla.ali
+W system%s		system.ads		system.ali
+W system.finalization_implementation%s  s-finimp.adb  s-finimp.ali
+W system.finalization_root%s  s-finroo.adb	s-finroo.ali
+W system.parameters%s	s-parame.adb		s-parame.ali
+W system.secondary_stack%s  s-secsta.adb	s-secsta.ali
+W system.soft_links%s	s-soflin.adb		s-soflin.ali
+W system.standard_library%s  s-stalib.adb	s-stalib.ali
+
+U ctrl_c_handler%s	ctrl_c_handler.ads	c1ec03d8 EE NE OO PK
+
+D ada.ads		20070406091342 3ffc8e18
+D a-calend.ads		20090409150019 343c83dd
+D a-charac.ads		20070912115821 2d3ec45b
+D a-chlat1.ads		20070912115821 2825df20
+D a-except.ads		20090727140100 0c711ac9
+D a-finali.ads		20090409150019 e5e85fa4
+D a-filico.ads		20090409150019 872dc219
+D a-ioexce.ads		20091130110856 8b9de6cd
+D a-reatim.ads		20090409150019 63f07669
+D a-stream.ads		20090409150019 2ca4ee37
+D a-string.ads		20070406091342 90ac6797
+D a-strmap.ads		20090409150019 9cb836fb
+D a-strunb.ads		20101220072657 e684739b
+D a-tags.ads		20101021101406 c7695348
+D a-taside.ads		20090409150019 a4888134
+D a-textio.ads		20091028140912 386df5d4
+D a-unccon.ads		20070406091342 f9eb8f06
+D ada_sockets.ads	20131017103555 372c9145
+D c_sockets.ads		20131017103555 44862f45
+D c_sockets_arch.ads	20131017103555 c328cf60
+D chat_handler.ads	20140112221408 0cd2aac3
+D concurrency.ads	20131017103555 d11dedce
+D ctrl_c_handler.ads	20140112221352 c1ec03d8
+D ctrl_c_handler.adb	20140112221352 7ecd2fc9
+D interfac.ads		20090409150019 f77d8799
+D i-c.ads		20101007125900 809c38c4
+D i-cstrin.ads		20090417131547 f3023ec4
+D i-cstrea.ads		20100622165701 1bd72c32
+D keyed_lists_generic.ads  20131017103555 b050c1c0
+D lists_generic.ads	20131017103555 4cea129e
+D lower_layer.ads	20131017103555 bc61d30f
+D lower_layer-inet.ads	20131017103555 1d47d264
+D lower_layer-inet-udp.ads  20131017103555 60f0483f
+D lower_layer-inet-udp-uni.ads  20131017103555 c94f5d30
+D lower_layer_udp.ads	20131017103555 ec2df04c
+D maps_g.ads		20140112221332 49e29bd1
+D maps_protector_g.ads	20140112221328 c05e88d5
+D ordered_maps_g.ads	20140113150032 d79544de
+D ordered_maps_protector_g.ads  20140113161926 040782e0
+D pantalla.ads		20140112221312 9c520c57
+D system.ads		20120503154647 23e1f70b
+D s-atacco.ads		20090409150019 1dc856ad
+D s-crtl.ads		20100617122610 ac77b159
+D s-exctab.ads		20090417131547 66e51330
+D s-ficobl.ads		20100909103250 443b9d66
+D s-finimp.ads		20090409150019 46853fe8
+D s-finroo.ads		20090409150019 dbb860c9
+D s-imguns.ads		20090409150019 9ff43cf7
+D s-linux.ads		20090730092306 47911ab1
+D s-multip.ads		20101011073009 38ac9f73
+D s-osinte.ads		20101127183452 6e2d2e09
+D s-parame.ads		20091130110856 9c5d83fa
+D s-secsta.ads		20090707124243 eea35a36
+D s-soflin.ads		20090729085153 9414c974
+D s-stache.ads		20090417130712 596fc1b4
+D s-stausa.ads		20101018101807 bba781f7
+D s-stalib.ads		20101021102512 c4241c00
+D s-stoele.ads		20090417130712 facd7d98
+D s-stoele.adb		20100617152355 afc5dc80
+D s-stratt.ads		20100909123135 aedef97e
+D s-tasinf.ads		20090409150019 21316953
+D s-taspri.ads		20080408071349 af44aca8
+D s-taprop.ads		20090409150019 07f79e46
+D s-taskin.ads		20101021101406 b2eaee08
+D s-taprob.ads		20090409150019 502249e3
+D s-tpoben.ads		20090409150019 e8374469
+D s-tassta.ads		20101018103456 e88ef99e
+D s-traent.ads		20090417130712 5221ee41
+D s-unstyp.ads		20090409150019 6ae15c76
+D s-wchcon.ads		20090417130712 bfeb2e3d
+D timed_handlers.ads	20140112221256 fc50485e
+D unchdeal.ads		20070406091342 214516a4
+D utiles.ads		20140113162844 0155071c
+X 1 ada.ads
+16K9*Ada 19e8 24|2r6 5r6 8r29 13r17 14r17 15r47
+X 11 a-string.ads
+16K13*Strings 35e16 24|5r10 8r33
+X 13 a-strunb.ads
+77K21*Unbounded 490e26 24|5w18 8r41
+80R9*Unbounded_String 474e14 24|10r25
+95V13*To_Unbounded_String{80R9} 24|15s27
+101V13*To_String{string} 24|17s24 19s27
+X 16 a-textio.ads
+49K13*Text_IO 472e16 24|2w10 13r21 14r21 15r51
+167U14*New_Line 24|13s29
+257V13*Get_Line{string} 24|15s59
+264U14*Put_Line 24|14s29
+X 21 chat_handler.ads
+13K9*Chat_Handler 102e17 24|4w6 18r25
+96U19*Prot_Salida 24|18s38
+X 23 ctrl_c_handler.ads
+1K9*Ctrl_C_Handler 3l5 3e19 24|7b14 23l5 23t19
+2U19*Handler 24|9b19 20s25 22l13 22t20
+X 24 ctrl_c_handler.adb
+8K17 ASU=8:41 10r21 15r23 17r20 19r23
+10r17 US{13|80R9} 15m17 17r34 19r37
+X 31 lower_layer.ads
+184V13*"="{boolean} 29|30i18
+186V13*">="{boolean} 29|29i18
+X 35 lower_layer_udp.ads
+4K9*Lower_Layer_UDP 24|3w6 35|150e20
+X 40 pantalla.ads
+12K9*Pantalla 24|6w6 12r17 12r38 16r17 16r38 40|40e13
+17n28*Rojo{17E9} 24|12r47
+18n21*Blanco{17E9} 24|16r47
+28U14*Poner_Color 24|12s26 16s26
+

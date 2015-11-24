@@ -1,0 +1,64 @@
+V "GNAT Lib v4.6"
+P ZX
+R nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnvnnnnnnnvnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnv1+nn
+
+U ordered_maps_protector_g%b  ordered_maps_protector_g.adb  678d9ea0 NE OO PK GE
+
+U ordered_maps_protector_g%s  ordered_maps_protector_g.ads  d392c63e BN EE NE OO PK GE
+W ordered_maps_g%s	ordered_maps_g.adb	ordered_maps_g.ali
+
+D ordered_maps_g.ads	20140113150032 d79544de
+D ordered_maps_protector_g.ads  20140113161926 040782e0
+D ordered_maps_protector_g.adb  20140113161912 638a1c40
+D system.ads		20120503154647 23e1f70b
+X 1 ordered_maps_g.ads
+7+9 Key_Type 2|11r41[5] 17r41[5] 21r44[5] 33r41[5] 37r41[5] 40r44[5] 3|6r40[2|5]
+. 14r35[2|5] 21r44[2|5] 42r38[2|5] 51r32[2|5] 59r41[2|5]
+8+9 Value_Type 2|12r41[5] 18r41[5] 34r41[5] 38r41[5] 3|7r40[2|5] 15r35[2|5]
+. 43r38[2|5] 52r35[2|5]
+14k9*Ordered_Maps_G 49e19 2|2w6 5r29
+16P9 Map(40R9[2|5]) 2|48r26[5]
+18U14 Get 3|10s15[2|5]
+24U14 Put 3|17s15[2|5]
+28U14 Delete 3|24s15[2|5]
+33V13 Map_Length{natural} 3|29s22[2|5]
+35U14 Print_Map 3|34s15[2|5]
+40R9 Tree_Node
+X 2 ordered_maps_protector_g.ads
+5K17 Maps[1|14] 11r36 12r36 17r36 18r36 21r39 33r36 34r36 37r36 38r36 40r39
+. 48r21 3|6r35 7r35 10r10 14r30 15r30 17r10 21r39 24r10 29r17 34r10 42r33
+. 43r33 51r27 52r30 59r36
+6k9*Ordered_Maps_Protector_G 5z17 51l5 51e29 3|2b14 76l5 76t29
+8W9*Prot_Map 10r36 16r36 20r39 24r29 26r36 49l8 49e16 3|4b19 38l8 38t16 41r36
+. 50r34 58r38 65r29 70r36
+10U14*Get 10=19 11>19 12<19 13<19 3|41b14 47l8 47t11
+10w19 M{8W9} 3|41b19 46r7
+11*19 Key{1|7+9[5]} 3|42b19 46r13
+12*19 Value{1|8+9[5]} 3|43b19 46m18
+13b19 Success{boolean} 3|44b19 46m25
+16U14*Put 16=19 17>19 18>19 3|50b14 55l8 55t11
+16w19 M{8W9} 3|50b19 54r7
+17*19 Key{1|7+9[5]} 3|51b19 54r13
+18*19 Value{1|8+9[5]} 3|52b19 54r18
+20U14*Delete 20=22 21>22 22<22 3|58b14 63l8 63t14
+20w22 M{8W9} 3|58b22 62r7
+21*22 Key{1|7+9[5]} 3|59b22 62r16
+22b22 Success{boolean} 3|60b22 62m21
+24V13*Map_Length{natural} 24>25 3|65b13 68l8 68t18
+24w25 M{8W9} 3|65b25 67r14
+26U14*Print_Map 26=25 3|70b14 73l8 73t17
+26w25 M{8W9} 3|70b25 72r7
+33U17 Get 33>22 34<22 35<22 3|6b17 11l11 11t14 46s9
+33*22 Key{1|7+9[5]} 3|6b22 10r24
+34*22 Value{1|8+9[5]} 3|7b22 10m29
+35b22 Success{boolean} 3|8b22 10m36
+37U17 Put 37>22 38>22 3|14b17 18l11 18t14 54s9
+37*22 Key{1|7+9[5]} 3|14b22 17r24
+38*22 Value{1|8+9[5]} 3|15b22 17r29
+40U17 Delete 40>25 41<25 3|21b17 25l11 25t17 62s9
+40*25 Key{1|7+9[5]} 3|21b25 24r27
+41b25 Success{boolean} 3|22b25 24m32
+43V16 Map_Length{natural} 3|27b16 30l11 30t21 67s16
+45U17 Print_Map 3|32b17 35l11 35t20 72s9
+48p7 Map{1|16P9[5]} 3|10r19 17m19 24m22 29r33 34r25
+
